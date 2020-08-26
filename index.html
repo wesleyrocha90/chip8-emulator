@@ -1,0 +1,35 @@
+<html>
+
+<head>
+    <title>Chip 8 Emulator</title>
+</head>
+
+<body>
+    <h1>Chip 8 Emulator</h1>
+
+    <label for="file">Choose a game file:</label>
+    <br />
+    <input id="file" name="file" type="file">
+
+    <script src="./index.js"></script>
+    <script>
+        let inputFile = document.getElementById('file');
+        let fileByteArray = [];
+
+        inputFile.addEventListener('change', (event) => {
+            var reader = new FileReader();
+            reader.onloadend = () => {
+                var data = reader.result;
+                
+                var array = new Uint8Array(data);
+
+                array.forEach(byte => fileByteArray.push(byte));
+
+                console.log(fileByteArray);
+            };
+            reader.readAsArrayBuffer(inputFile.files[0]);
+        })
+    </script>
+</body>
+
+</html>
