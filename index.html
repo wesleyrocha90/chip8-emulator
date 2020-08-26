@@ -5,11 +5,16 @@
 </head>
 
 <body>
-    <h1>Chip 8 Emulator</h1>
-
-    <label for="file">Choose a game file:</label>
-    <br />
-    <input id="file" name="file" type="file">
+    <div style="width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <h1>Chip 8 Emulator</h1>
+    
+        <canvas id="canvas" width="64" height="32" style="border: 1px solid lightgrey; width: 600px; height: 300px; image-rendering: pixelated;"></canvas>
+    
+        <br />
+        <label for="file">Choose a game file:</label>
+        <br />
+        <input id="file" name="file" type="file">
+    </div>
 
     <script src="./index.js"></script>
     <script>
@@ -28,7 +33,23 @@
                 console.log(fileByteArray);
             };
             reader.readAsArrayBuffer(inputFile.files[0]);
-        })
+        });
+
+        // canvas
+        var canvas = document.getElementById('canvas');
+        var context = canvas.getContext('2d');
+
+        context.fillStyle = '#000';
+        context.fillRect(0, 0, 64, 32);
+
+        context.fillStyle = '#FFF';
+        for (let x = 0; x < 64; x++) {
+            for (let y = 0; y < 32; y++) {
+                if ((x + y) % 2 === 0) {
+                    context.fillRect(x, y, 1, 1);
+                }
+            }
+        }
     </script>
 </body>
 
