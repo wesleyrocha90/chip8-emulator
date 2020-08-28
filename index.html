@@ -9,47 +9,250 @@
         <h1>Chip 8 Emulator</h1>
     
         <canvas id="canvas" width="64" height="32" style="border: 1px solid lightgrey; width: 600px; height: 300px; image-rendering: pixelated;"></canvas>
-    
+        
         <br />
         <label for="file">Choose a game file:</label>
         <br />
         <input id="file" name="file" type="file">
     </div>
-
-    <script src="./index.js"></script>
+    
     <script>
+        // variables
+        var memory;
+        var V;
+        var I;
+        var keyboard;
+        var screen;
+        var PC;
+        var SP;
+        var stack;
+
+        // delay timer register
+        var DT;
+        // sound timer register
+        var ST;
+
+        var fonts = [
+            [0xF0, 0x90, 0x90, 0x90, 0xF0], // 0
+            [0x20, 0x60, 0x20, 0x20, 0x70], // 1
+            [0xF0, 0x10, 0xF0, 0x80, 0xF0], // 2
+            [0xF0, 0x10, 0xF0, 0x10, 0xF0], // 3
+            [0x90, 0x90, 0xF0, 0x10, 0x10], // 4
+            [0xF0, 0x80, 0xF0, 0x10, 0xF0], // 5
+            [0xF0, 0x80, 0xF0, 0x90, 0xF0], // 6
+            [0xF0, 0x10, 0x20, 0x40, 0x40], // 7
+            [0xF0, 0x90, 0xF0, 0x90, 0xF0], // 8
+            [0xF0, 0x90, 0xF0, 0x10, 0xF0], // 9
+            [0xF0, 0x90, 0xF0, 0x90, 0x90], // A
+            [0xE0, 0x90, 0xE0, 0x90, 0xE0], // B
+            [0xF0, 0x80, 0x80, 0x80, 0xF0], // C
+            [0xE0, 0x90, 0x90, 0x90, 0xE0], // D
+            [0xF0, 0x80, 0xF0, 0x80, 0xF0], // E
+            [0xF0, 0x80, 0xF0, 0x80, 0x80], // F
+        ];
+        
+        // code responsible for loading the rom into the memory and start the game
         let inputFile = document.getElementById('file');
-        let fileByteArray = [];
-
         inputFile.addEventListener('change', (event) => {
-            var reader = new FileReader();
+            let startAddress = 0x200;
+            let startFontAddress = 0x50
+            let reader = new FileReader();
             reader.onloadend = () => {
-                var data = reader.result;
-                
-                var array = new Uint8Array(data);
+                initialize();
+                startCanvas();
 
-                array.forEach(byte => fileByteArray.push(byte));
+                let array = new Uint8Array(reader.result);
+                memory = new Array(4096);
+                array.forEach(byte => memory[startAddress++] = byte);
 
-                console.log(fileByteArray);
+                fonts.forEach(font => font.forEach(char => memory[startFontAddress++] = char));
+
+                startGame();
             };
             reader.readAsArrayBuffer(inputFile.files[0]);
         });
 
-        // canvas
-        var canvas = document.getElementById('canvas');
-        var context = canvas.getContext('2d');
+        function initialize() {
+            memory = new Array(4096);
+            V = new Array(16);
+            I = null;
+            keyboard = new Array(16);
+            screen = new Array(64 * 32);
+            PC = 0x200;
+            SP = 0x1;
+            stack = new Array(16);
+        }
 
-        context.fillStyle = '#000';
-        context.fillRect(0, 0, 64, 32);
+        function startGame() {
+            // GAME LOOP
+            // while (PC < memory.length) {
+            for (let i = 0; i < 300; i++) {
+                gameLoop();
+            }
+        }
 
-        context.fillStyle = '#FFF';
-        for (let x = 0; x < 64; x++) {
-            for (let y = 0; y < 32; y++) {
-                if ((x + y) % 2 === 0) {
-                    context.fillRect(x, y, 1, 1);
+        function startCanvas() {
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+    
+            context.fillStyle = '#000';
+            context.fillRect(0, 0, 64, 32);
+    
+            context.fillStyle = '#FFF';
+            for (let x = 0; x < 64; x++) {
+                for (let y = 0; y < 32; y++) {
+                    if ((x + y) % 2 === 0) {
+                        context.fillRect(x, y, 1, 1);
+                    }
                 }
             }
         }
+
+        function gameLoop() {
+
+            emulateCycle();
+
+            // draw graphics
+
+            // read inputs
+
+        }
+
+        function emulateCycle() {
+            // fetch opcode
+            let opcode = memory[PC++] << 8 | memory[PC++];
+            
+            // decode opcode
+            switch(opcode >> 12) {
+                case 0x0:
+                    switch(opcode) {
+                        case 0x00E0:
+                            console.log(numberToHexString(opcode), ' - 00E0 - CLS');
+                            break;
+                        case 0x00EE:
+                            console.log(numberToHexString(opcode), ' - 00EE - RET');
+                            break;
+                        default:
+                            console.log(numberToHexString(opcode), ' - 0nnn - SYS addr');
+                            break;
+                    }
+                    break;
+                case 0x1:
+                    console.log(numberToHexString(opcode), ' - 1nnn - JP addr');
+                    break;
+                case 0x2:
+                    console.log(numberToHexString(opcode), ' - 2nnn - CALL addr');
+                    break;
+                case 0x3:
+                    console.log(numberToHexString(opcode), ' - 3xkk - SE Vx, byte');
+                    break;
+                case 0x4:
+                    console.log(numberToHexString(opcode), ' - 4xkk - SNE Vx, byte');
+                    break;
+                case 0x5:
+                    console.log(numberToHexString(opcode), ' - 5xy0 - SE Vx, Vy');
+                    break;
+                case 0x6:
+                    console.log(numberToHexString(opcode), ' - 6xkk - LD Vx, byte');
+                    break;
+                case 0x7:
+                    console.log(numberToHexString(opcode), ' - 7xkk - ADD Vx, byte');
+                    break;
+                case 0x8:
+                    switch(opcode & ~((opcode >> 4) << 4)) {
+                        case 0x0:
+                            console.log(numberToHexString(opcode), ' - 8xy0 - LD Vx, Vy');
+                            break;
+                        case 0x1:
+                            console.log(numberToHexString(opcode), ' - 8xy1 - OR Vx, Vy');
+                            break;
+                        case 0x2:
+                            console.log(numberToHexString(opcode), ' - 8xy2 - AND Vx, Vy');
+                            break;
+                        case 0x3:
+                            console.log(numberToHexString(opcode), ' - 8xy3 - XOR Vx, Vy');
+                            break;
+                        case 0x4:
+                            console.log(numberToHexString(opcode), ' - 8xy4 - ADD Vx, Vy');
+                            break;
+                        case 0x5:
+                            console.log(numberToHexString(opcode), ' - 8xy5 - SUB Vx, Vy');
+                            break;
+                        case 0x6:
+                            console.log(numberToHexString(opcode), ' - 8xy6 - SHR Vx {, Vy}');
+                            break;
+                        case 0x7:
+                            console.log(numberToHexString(opcode), ' - 8xy7 - SUBN Vx, Vy');
+                            break;
+                        case 0xE:
+                            console.log(numberToHexString(opcode), ' - 8xyE - SHL Vx {, Vy}');
+                            break;
+                    }
+                    break;
+                case 0x9:
+                    console.log(numberToHexString(opcode), ' - 9xy0 - SNE Vx, Vy');
+                    break;
+                case 0xA:
+                    console.log(numberToHexString(opcode), ' - Annn - LD I, addr');
+                    break;
+                case 0xB:
+                    console.log(numberToHexString(opcode), ' - Bnnn - JP V0, addr');
+                    break;
+                case 0xC:
+                    console.log(numberToHexString(opcode), ' - Cxkk - RND Vx, byte');
+                    break;
+                case 0xD:
+                    console.log(numberToHexString(opcode), ' - Dxyn - DRW Vx, Vy, nibble');
+                    break;
+                case 0xE:
+                    switch(opcode & ~((opcode >> 8) << 8)) {
+                        case 0x9E:
+                            console.log(numberToHexString(opcode), ' - Ex9E - SKP Vx');
+                            break;
+                        case 0xA1:
+                            console.log(numberToHexString(opcode), ' - ExA1 - SKNP Vx');
+                            break;
+                    }
+                    break;
+                case 0xF:
+                    switch(opcode & ~((opcode >> 8) << 8)) {
+                        case 0x07:
+                            console.log(numberToHexString(opcode), ' - Fx07 - LD Vx, DT');
+                            break;
+                        case 0x0A:
+                            console.log(numberToHexString(opcode), ' - Fx0A - LD Vx, K');
+                            break;
+                        case 0x15:
+                            console.log(numberToHexString(opcode), ' - Fx15 - LD DT, Vx');
+                            break;
+                        case 0x18:
+                            console.log(numberToHexString(opcode), ' - Fx18 - LD ST, Vx');
+                            break;
+                        case 0x1E:
+                            console.log(numberToHexString(opcode), ' - Fx1E - ADD I, Vx');
+                            break;
+                        case 0x29:
+                            console.log(numberToHexString(opcode), ' - Fx29 - LD F, Vx');
+                            break;
+                        case 0x33:
+                            console.log(numberToHexString(opcode), ' - Fx33 - LD B, Vx');
+                            break;
+                        case 0x55:
+                            console.log(numberToHexString(opcode), ' - Fx55 - LD [I], Vx');
+                            break;
+                        case 0x65:
+                            console.log(numberToHexString(opcode), ' - Fx65 - LD Vx, [I]');
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        function numberToHexString(number) {
+            return '0x' + number.toString(16).toUpperCase().padStart(4, '0');
+        }
+
+        // OPCODES
     </script>
 </body>
 
