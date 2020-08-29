@@ -22,7 +22,7 @@
         var V;
         var I;
         var keyboard;
-        var screen;
+        var video;
         var PC;
         var SP;
         var stack;
@@ -73,11 +73,11 @@
         });
 
         function initialize() {
-            memory = new Array(4096);
-            V = new Array(16);
+            memory = new Uint8Array(4096);
+            V = new Uint8Array(16);
             I = null;
-            keyboard = new Array(16);
-            screen = new Array(64 * 32);
+            keyboard = new Uint8Array(16);
+            video = new Uint8Array(64 * 32);
             PC = 0x200;
             SP = 0x1;
             stack = new Array(16);
@@ -120,128 +120,129 @@
 
         function emulateCycle() {
             // fetch opcode
-            let opcode = memory[PC++] << 8 | memory[PC++];
+            let opcode = memory[PC] << 8 | memory[PC + 1];
+            PC += 2;
             
             // decode opcode
-            switch(opcode >> 12) {
-                case 0x0:
-                    switch(opcode) {
-                        case 0x00E0:
-                            console.log(numberToHexString(opcode), ' - 00E0 - CLS');
+            switch(opcode & 0xF000) {
+                case 0x0000:
+                    switch(opcode & 0x000F) {
+                        case 0x0000:
+                            OP_00E0(opcode);
                             break;
-                        case 0x00EE:
-                            console.log(numberToHexString(opcode), ' - 00EE - RET');
+                        case 0x000E:
+                            OP_00EE(opcode);
                             break;
                         default:
-                            console.log(numberToHexString(opcode), ' - 0nnn - SYS addr');
+                            OP_0nnn(opcode);
                             break;
                     }
                     break;
-                case 0x1:
-                    console.log(numberToHexString(opcode), ' - 1nnn - JP addr');
+                case 0x1000:
+                    OP_1nnn(opcode);
                     break;
-                case 0x2:
-                    console.log(numberToHexString(opcode), ' - 2nnn - CALL addr');
+                case 0x2000:
+                    OP_2nnn(opcode);
                     break;
-                case 0x3:
-                    console.log(numberToHexString(opcode), ' - 3xkk - SE Vx, byte');
+                case 0x3000:
+                    OP_3xkk(opcode);
                     break;
-                case 0x4:
-                    console.log(numberToHexString(opcode), ' - 4xkk - SNE Vx, byte');
+                case 0x4000:
+                    OP_4xkk(opcode);
                     break;
-                case 0x5:
-                    console.log(numberToHexString(opcode), ' - 5xy0 - SE Vx, Vy');
+                case 0x5000:
+                    OP_5xy0(opcode);
                     break;
-                case 0x6:
-                    console.log(numberToHexString(opcode), ' - 6xkk - LD Vx, byte');
+                case 0x6000:
+                    OP_6xkk(opcode);
                     break;
-                case 0x7:
-                    console.log(numberToHexString(opcode), ' - 7xkk - ADD Vx, byte');
+                case 0x7000:
+                    OP_7xkk(opcode);
                     break;
-                case 0x8:
-                    switch(opcode & ~((opcode >> 4) << 4)) {
-                        case 0x0:
-                            console.log(numberToHexString(opcode), ' - 8xy0 - LD Vx, Vy');
+                case 0x8000:
+                    switch(opcode & 0x000F) {
+                        case 0x0000:
+                            OP_8xy0(opcode);
                             break;
-                        case 0x1:
-                            console.log(numberToHexString(opcode), ' - 8xy1 - OR Vx, Vy');
+                        case 0x0001:
+                            OP_8xy1(opcode);
                             break;
-                        case 0x2:
-                            console.log(numberToHexString(opcode), ' - 8xy2 - AND Vx, Vy');
+                        case 0x0002:
+                            OP_8xy2(opcode);
                             break;
-                        case 0x3:
-                            console.log(numberToHexString(opcode), ' - 8xy3 - XOR Vx, Vy');
+                        case 0x0003:
+                            OP_8xy3(opcode);
                             break;
-                        case 0x4:
-                            console.log(numberToHexString(opcode), ' - 8xy4 - ADD Vx, Vy');
+                        case 0x0004:
+                            OP_8xy4(opcode);
                             break;
-                        case 0x5:
-                            console.log(numberToHexString(opcode), ' - 8xy5 - SUB Vx, Vy');
+                        case 0x0005:
+                            OP_8xy5(opcode);
                             break;
-                        case 0x6:
-                            console.log(numberToHexString(opcode), ' - 8xy6 - SHR Vx {, Vy}');
+                        case 0x0006:
+                            OP_8xy6(opcode);
                             break;
-                        case 0x7:
-                            console.log(numberToHexString(opcode), ' - 8xy7 - SUBN Vx, Vy');
+                        case 0x0007:
+                            OP_8xy7(opcode);
                             break;
-                        case 0xE:
-                            console.log(numberToHexString(opcode), ' - 8xyE - SHL Vx {, Vy}');
+                        case 0x000E:
+                            OP_8xyE(opcode);
                             break;
                     }
                     break;
-                case 0x9:
-                    console.log(numberToHexString(opcode), ' - 9xy0 - SNE Vx, Vy');
+                case 0x9000:
+                    OP_9xy0(opcode);
                     break;
-                case 0xA:
-                    console.log(numberToHexString(opcode), ' - Annn - LD I, addr');
+                case 0xA000:
+                    OP_Annn(opcode);
                     break;
-                case 0xB:
-                    console.log(numberToHexString(opcode), ' - Bnnn - JP V0, addr');
+                case 0xB000:
+                    OP_Bnnn(opcode);
                     break;
-                case 0xC:
-                    console.log(numberToHexString(opcode), ' - Cxkk - RND Vx, byte');
+                case 0xC000:
+                    OP_Cxkk(opcode);
                     break;
-                case 0xD:
-                    console.log(numberToHexString(opcode), ' - Dxyn - DRW Vx, Vy, nibble');
+                case 0xD000:
+                    OP_Dxyn(opcode);
                     break;
-                case 0xE:
-                    switch(opcode & ~((opcode >> 8) << 8)) {
-                        case 0x9E:
-                            console.log(numberToHexString(opcode), ' - Ex9E - SKP Vx');
+                case 0xE000:
+                    switch(opcode & 0x00FF) {
+                        case 0x009E:
+                            OP_Ex9E(opcode);
                             break;
-                        case 0xA1:
-                            console.log(numberToHexString(opcode), ' - ExA1 - SKNP Vx');
+                        case 0x00A1:
+                            OP_ExA1(opcode);
                             break;
                     }
                     break;
-                case 0xF:
-                    switch(opcode & ~((opcode >> 8) << 8)) {
-                        case 0x07:
-                            console.log(numberToHexString(opcode), ' - Fx07 - LD Vx, DT');
+                case 0xF000:
+                    switch(opcode & 0x000F) {
+                        case 0x0007:
+                            OP_Fx07(opcode);
                             break;
-                        case 0x0A:
-                            console.log(numberToHexString(opcode), ' - Fx0A - LD Vx, K');
+                        case 0x000A:
+                            OP_Fx0A(opcode);
                             break;
-                        case 0x15:
-                            console.log(numberToHexString(opcode), ' - Fx15 - LD DT, Vx');
+                        case 0x0015:
+                            OP_Fx15(opcode);
                             break;
-                        case 0x18:
-                            console.log(numberToHexString(opcode), ' - Fx18 - LD ST, Vx');
+                        case 0x0018:
+                            OP_Fx18(opcode);
                             break;
-                        case 0x1E:
-                            console.log(numberToHexString(opcode), ' - Fx1E - ADD I, Vx');
+                        case 0x001E:
+                            OP_Fx1E(opcode);
                             break;
-                        case 0x29:
-                            console.log(numberToHexString(opcode), ' - Fx29 - LD F, Vx');
+                        case 0x0029:
+                            OP_Fx29(opcode);
                             break;
-                        case 0x33:
-                            console.log(numberToHexString(opcode), ' - Fx33 - LD B, Vx');
+                        case 0x0033:
+                            OP_Fx33(opcode);
                             break;
-                        case 0x55:
-                            console.log(numberToHexString(opcode), ' - Fx55 - LD [I], Vx');
+                        case 0x0055:
+                            OP_Fx55(opcode);
                             break;
-                        case 0x65:
-                            console.log(numberToHexString(opcode), ' - Fx65 - LD Vx, [I]');
+                        case 0x0065:
+                            OP_Fx65(opcode);
                             break;
                     }
                     break;
@@ -250,6 +251,251 @@
 
         function numberToHexString(number) {
             return '0x' + number.toString(16).toUpperCase().padStart(4, '0');
+        }
+
+        // SYS addr
+        // Jump to a machine code routine at nnn.
+        // This instruction is only used on the old computers on which Chip-8 was originally implemented. It is ignored by modern interpreters.
+        function OP_0nnn(opcode) {
+            console.log(numberToHexString(opcode), ' - 0nnn - SYS addr');
+        }
+
+        // CLS
+        // Clear the display.
+        function OP_00E0(opcode) {
+            console.log(numberToHexString(opcode), ' - 00E0 - CLS');
+            video = new Uint8Array(64 * 32);
+        }
+
+        // RET
+        // Return from a subroutine.
+        // The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
+        function OP_00EE(opcode) {
+            console.log(numberToHexString(opcode), ' - 00EE - RET');
+        }
+
+        // JP addr
+        // Jump to location nnn.
+        // The interpreter sets the program counter to nnn.
+        function OP_1nnn(opcode) {
+            console.log(numberToHexString(opcode), ' - 1nnn - JP addr');
+        }
+
+        // CALL addr
+        // Call subroutine at nnn.
+        // The interpreter increments the stack pointer, then puts the current PC on the top of the stack. The PC is then set to nnn.
+        function OP_2nnn(opcode) {
+            console.log(numberToHexString(opcode), ' - 2nnn - CALL addr');
+        }
+
+        // SE Vx, byte
+        // Skip next instruction if Vx = kk.
+        // The interpreter compares register Vx to kk, and if they are equal, increments the program counter by 2.
+        function OP_3xkk(opcode) {
+            console.log(numberToHexString(opcode), ' - 3xkk - SE Vx, byte');
+        }
+
+        // SNE Vx, byte
+        // Skip next instruction if Vx != kk.
+        // The interpreter compares register Vx to kk, and if they are not equal, increments the program counter by 2.
+        function OP_4xkk(opcode) {
+            console.log(numberToHexString(opcode), ' - 4xkk - SNE Vx, byte');
+        }
+
+        // SE Vx, Vy
+        // Skip next instruction if Vx = Vy.
+        // The interpreter compares register Vx to register Vy, and if they are equal, increments the program counter by 2.
+        function OP_5xy0(opcode) {
+            console.log(numberToHexString(opcode), ' - 5xy0 - SE Vx, Vy');
+        }
+
+        // LD Vx, byte
+        // Set Vx = kk.
+        // The interpreter puts the value kk into register Vx.
+        function OP_6xkk(opcode) {
+            console.log(numberToHexString(opcode), ' - 6xkk - LD Vx, byte');
+        }
+
+        // ADD Vx, byte
+        // Set Vx = Vx + kk.
+        // Adds the value kk to the value of register Vx, then stores the result in Vx.
+        function OP_7xkk(opcode) {
+            console.log(numberToHexString(opcode), ' - 7xkk - ADD Vx, byte');
+        }
+
+        // LD Vx, Vy
+        // Set Vx = Vy.
+        // Stores the value of register Vy in register Vx.
+        function OP_8xy0(opcode) {
+            console.log(numberToHexString(opcode), ' - 8xy0 - LD Vx, Vy');
+        }
+
+        // OR Vx, Vy
+        // Set Vx = Vx OR Vy.
+        // Performs a bitwise OR on the values of Vx and Vy, then stores the result in Vx. A bitwise OR compares the corrseponding bits from two values, and if either bit is 1, then the same bit in the result is also 1. Otherwise, it is 0.
+        function OP_8xy1(opcode) {
+            console.log(numberToHexString(opcode), ' - 8xy1 - OR Vx, Vy');
+        }
+
+        // AND Vx, Vy
+        // Set Vx = Vx AND Vy.
+        // Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx. A bitwise AND compares the corrseponding bits from two values, and if both bits are 1, then the same bit in the result is also 1. Otherwise, it is 0.
+        function OP_8xy2(opcode) {
+            console.log(numberToHexString(opcode), ' - 8xy2 - AND Vx, Vy');
+        }
+
+        // XOR Vx, Vy
+        // Set Vx = Vx XOR Vy.
+        // Performs a bitwise exclusive OR on the values of Vx and Vy, then stores the result in Vx. An exclusive OR compares the corrseponding bits from two values, and if the bits are not both the same, then the corresponding bit in the result is set to 1. Otherwise, it is 0.
+        function OP_8xy3(opcode) {
+            console.log(numberToHexString(opcode), ' - 8xy3 - XOR Vx, Vy');
+        }
+
+        // ADD Vx, Vy
+        // Set Vx = Vx + Vy, set VF = carry.
+        // The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255,) VF is set to 1, otherwise 0. Only the lowest 8 bits of the result are kept, and stored in Vx.
+        function OP_8xy4(opcode) {
+            console.log(numberToHexString(opcode), ' - 8xy4 - ADD Vx, Vy');
+        }
+
+        // SUB Vx, Vy
+        // Set Vx = Vx - Vy, set VF = NOT borrow.
+        // If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, and the results stored in Vx.
+        function OP_8xy5(opcode) {
+            console.log(numberToHexString(opcode), ' - 8xy5 - SUB Vx, Vy');
+        }
+
+        // SHR Vx {, Vy}
+        // Set Vx = Vx SHR 1.
+        // If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2.
+        function OP_8xy6(opcode) {
+            console.log(numberToHexString(opcode), ' - 8xy6 - SHR Vx {, Vy}');
+        }
+
+        // SUBN Vx, Vy
+        // Set Vx = Vy - Vx, set VF = NOT borrow.
+        // If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
+        function OP_8xy7(opcode) {
+            console.log(numberToHexString(opcode), ' - 8xy7 - SUBN Vx, Vy');
+        }
+
+        // SHL Vx {, Vy}
+        // Set Vx = Vx SHL 1.
+        // If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
+        function OP_8xyE(opcode) {
+            console.log(numberToHexString(opcode), ' - 8xyE - SHL Vx {, Vy}');
+        }
+
+        // SNE Vx, Vy
+        // Skip next instruction if Vx != Vy.
+        // The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2.
+        function OP_9xy0(opcode) {
+            console.log(numberToHexString(opcode), ' - 9xy0 - SNE Vx, Vy');
+        }
+
+        // LD I, addr
+        // Set I = nnn.
+        // The value of register I is set to nnn.
+        function OP_Annn(opcode) {
+            console.log(numberToHexString(opcode), ' - Annn - LD I, addr');
+        }
+
+        // JP V0, addr
+        // Jump to location nnn + V0.
+        // The program counter is set to nnn plus the value of V0.
+        function OP_Bnnn(opcode) {
+            console.log(numberToHexString(opcode), ' - Bnnn - JP V0, addr');
+        }
+
+        // RND Vx, byte
+        // Set Vx = random byte AND kk.
+        // The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. The results are stored in Vx. See instruction 8xy2 for more information on AND.
+        function OP_Cxkk(opcode) {
+            console.log(numberToHexString(opcode), ' - Cxkk - RND Vx, byte');
+        }
+
+        // DRW Vx, Vy, nibble
+        // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
+        // The interpreter reads n bytes from memory, starting at the address stored in I. These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). Sprites are XORed onto the existing screen. If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen. See instruction 8xy3 for more information on XOR, and section 2.4, Display, for more information on the Chip-8 screen and sprites.
+        function OP_Dxyn(opcode) {
+            console.log(numberToHexString(opcode), ' - Dxyn - DRW Vx, Vy, nibble');
+        }
+
+        // SKP Vx
+        // Skip next instruction if key with the value of Vx is pressed.
+        // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
+        function OP_Ex9E(opcode) {
+            console.log(numberToHexString(opcode), ' - Ex9E - SKP Vx');
+        }
+
+        // SKNP Vx
+        // Skip next instruction if key with the value of Vx is not pressed.
+        // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
+        function OP_ExA1(opcode) {
+            console.log(numberToHexString(opcode), ' - ExA1 - SKNP Vx');
+        }
+
+        // LD Vx, DT
+        // Set Vx = delay timer value.
+        // The value of DT is placed into Vx.
+        function OP_Fx07(opcode) {
+            console.log(numberToHexString(opcode), ' - Fx07 - LD Vx, DT');
+        }
+
+        // LD Vx, K
+        // Wait for a key press, store the value of the key in Vx.
+        // All execution stops until a key is pressed, then the value of that key is stored in Vx.
+        function OP_Fx0A(opcode) {
+            console.log(numberToHexString(opcode), ' - Fx0A - LD Vx, K');
+        }
+
+        // LD DT, Vx
+        // Set delay timer = Vx.
+        // DT is set equal to the value of Vx.
+        function OP_Fx15(opcode) {
+            console.log(numberToHexString(opcode), ' - Fx15 - LD DT, Vx');
+        }
+
+        // LD ST, Vx
+        // Set sound timer = Vx.
+        // ST is set equal to the value of Vx.
+        function OP_Fx18(opcode) {
+            console.log(numberToHexString(opcode), ' - Fx18 - LD ST, Vx');
+        }
+
+        // ADD I, Vx
+        // Set I = I + Vx.
+        // The values of I and Vx are added, and the results are stored in I.
+        function OP_Fx1E(opcode) {
+            console.log(numberToHexString(opcode), ' - Fx1E - ADD I, Vx');
+        }
+
+        // LD F, Vx
+        // Set I = location of sprite for digit Vx.
+        // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. See section 2.4, Display, for more information on the Chip-8 hexadecimal font.
+        function OP_Fx29(opcode) {
+            console.log(numberToHexString(opcode), ' - Fx29 - LD F, Vx');
+        }
+
+        // LD B, Vx
+        // Store BCD representation of Vx in memory locations I, I+1, and I+2.
+        // The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
+        function OP_Fx33(opcode) {
+            console.log(numberToHexString(opcode), ' - Fx33 - LD B, Vx');
+        }
+
+        // LD [I], Vx
+        // Store registers V0 through Vx in memory starting at location I.
+        // The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
+        function OP_Fx55(opcode) {
+            console.log(numberToHexString(opcode), ' - Fx55 - LD [I], Vx');
+        }
+
+        // LD Vx, [I]
+        // Read registers V0 through Vx from memory starting at location I.
+        // The interpreter reads values from memory starting at location I into registers V0 through Vx.
+        function OP_Fx65(opcode) {
+            console.log(numberToHexString(opcode), ' - Fx65 - LD Vx, [I]');
         }
 
         // OPCODES
