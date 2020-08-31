@@ -34,6 +34,9 @@
         var DT; // delay timer register
         var ST; // sound timer register
 
+        // other variables
+        var needDrawing; // set to true if the draw function is called, indicating that the screen need to be drawn
+
         var fonts = [
             [0xF0, 0x90, 0x90, 0x90, 0xF0], // 0
             [0x20, 0x60, 0x20, 0x20, 0x70], // 1
@@ -90,6 +93,19 @@
             context.fillRect(0, 0, 64, 32);
         }
 
+        function drawCanvas() {
+            context.fillStyle = '#FFF';
+            for (let row = 0; row < 32; row++) {
+                for (let col = 0; col < 64; col++) {
+                    let spriteVideo = video[row * 64 + col];
+                    if (spriteVideo) {
+                        context.fillRect(col, row, 1, 1);
+                    }
+                }
+            }
+            needDrawing = false;
+        }
+
         function startGame() {
             // GAME LOOP
             // while (PC < memory.length) {
@@ -102,7 +118,8 @@
 
             emulateCycle();
 
-            // drawCanvas();
+            if (needDrawing)
+                drawCanvas();
 
             // read inputs
 
@@ -440,7 +457,26 @@
         // The interpreter reads n bytes from memory, starting at the address stored in I. These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). Sprites are XORed onto the existing screen. If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen. See instruction 8xy3 for more information on XOR, and section 2.4, Display, for more information on the Chip-8 screen and sprites.
         function OP_Dxyn(opcode) {
             console.log(numberToHexString(opcode), ' - Dxyn - DRW Vx, Vy, nibble');
-            
+            let x = V[(opcode & 0x0F00) >> 8];
+            let y = V[(opcode & 0x00F0) >> 4];
+            let n = (opcode & 0x000F);
+
+            for (let i = 0; i < n; i++) {
+                let spriteN = memory[I + (i * 2)] << 8 | memory[I + (i * 2 + 1)];
+
+                for (let j = 7; j >= 0; j--) {
+                    let spritePixel = spriteN >> j & 0x1;
+                    let screenPixel = video[(y + i) * 64 + (x + 7 - j)];
+
+                    if (spritePixel) {
+                        if (screenPixel) {
+                            V[0xF] = 1;
+                        }
+                        video[(y + i) * 64 + (x + 7 - j)] ^= spritePixel;
+                    }
+                }
+            }
+            needDrawing = true;
         }
 
         // SKP Vx
@@ -448,7 +484,8 @@
         // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
         function OP_Ex9E(opcode) {
             console.log(numberToHexString(opcode), ' - Ex9E - SKP Vx');
-            
+            if (keyboard[V[(opcode & 0x0F00) >> 8]] === 0x1)
+                PC += 2;
         }
 
         // SKNP Vx
@@ -456,7 +493,8 @@
         // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
         function OP_ExA1(opcode) {
             console.log(numberToHexString(opcode), ' - ExA1 - SKNP Vx');
-            
+            if (keyboard[V[(opcode & 0x0F00) >> 8]] !== 0x1)
+                PC += 2;
         }
 
         // LD Vx, DT
@@ -472,7 +510,10 @@
         // All execution stops until a key is pressed, then the value of that key is stored in Vx.
         function OP_Fx0A(opcode) {
             console.log(numberToHexString(opcode), ' - Fx0A - LD Vx, K');
-            
+            if (keyboard.every(key => key === 0x0))
+                PC -= 2;
+            else
+                V[(opcode & 0x0F00) >> 8] = keyboard.findIndex(item => item === 0x1)
         }
 
         // LD DT, Vx
