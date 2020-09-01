@@ -14,6 +14,8 @@
         <label for="file">Choose a game file:</label>
         <br />
         <input id="file" name="file" type="file">
+        <br />
+        <button id="pause">Pause</button>
     </div>
     
     <script>
@@ -21,6 +23,7 @@
         var canvas = document.getElementById('canvas');
         var context = canvas.getContext('2d');
         var inputFile = document.getElementById('file');
+        var pauseButton = document.getElementById('pause');
 
         // variables
         var memory; // chip 8 internal memory
@@ -36,6 +39,7 @@
 
         // other variables
         var needDrawing; // set to true if the draw function is called, indicating that the screen need to be drawn
+        var pauseGame = false;
 
         var fonts = [
             [0xF0, 0x90, 0x90, 0x90, 0xF0], // 0
@@ -55,6 +59,10 @@
             [0xF0, 0x80, 0xF0, 0x80, 0xF0], // E
             [0xF0, 0x80, 0xF0, 0x80, 0x80], // F
         ];
+
+        pauseButton.addEventListener('click', function () {
+            pauseGame = !pauseGame;
+        });
         
         // code responsible for loading the rom into the memory and start the game
         inputFile.addEventListener('change', (event) => {
@@ -68,7 +76,9 @@
                 let array = new Uint8Array(reader.result);
                 //let array = [0xA2,0x0A,0x60,0x0A,0x61,0x05,0xD0,0x17,0x12,0x08,0x00,0x7C,0x00,0x40,0x00,0x40,0x00,0x7C,0x00,0x40,0x00,0x40,0x00,0x7C,];
                 memory = new Array(4096);
-                array.forEach(byte => memory[startAddress++] = byte);
+                array.forEach(byte => {
+                    memory[startAddress++] = byte;
+                });
 
                 fonts.forEach(font => font.forEach(char => memory[startFontAddress++] = char));
 
@@ -107,22 +117,24 @@
         }
 
         function startGame() {
-            // GAME LOOP
-            // while (PC < memory.length) {
-            for (let i = 0; i < 300; i++) {
-                gameLoop();
-            }
+            requestAnimationFrame(gameLoop);
         }
+
+        var lastExecutionTime;
 
         function gameLoop() {
 
-            emulateCycle();
+            if (!pauseGame) {
+                emulateCycle();
 
-            if (needDrawing)
-                drawCanvas();
+                if (needDrawing)
+                    drawCanvas();
 
-            // read inputs
+                // read inputs
 
+            }
+
+            requestAnimationFrame(gameLoop);
         }
 
         function emulateCycle() {
@@ -262,13 +274,13 @@
         // Jump to a machine code routine at nnn.
         // This instruction is only used on the old computers on which Chip-8 was originally implemented. It is ignored by modern interpreters.
         function OP_0nnn(opcode) {
-            console.log(numberToHexString(opcode), ' - 0nnn - SYS addr');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 0${(opcode & 0x0FFF).toString(16).padStart(3, '0')} - SYS addr`);
         }
 
         // CLS
         // Clear the display.
         function OP_00E0(opcode) {
-            console.log(numberToHexString(opcode), ' - 00E0 - CLS');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 00E0 - CLS`);
             video = new Uint8Array(64 * 32).fill(0x0);
         }
 
@@ -276,7 +288,7 @@
         // Return from a subroutine.
         // The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
         function OP_00EE(opcode) {
-            console.log(numberToHexString(opcode), ' - 00EE - RET');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 00EE - RET`);
             PC = stack[SP];
             SP--;
         }
@@ -285,7 +297,7 @@
         // Jump to location nnn.
         // The interpreter sets the program counter to nnn.
         function OP_1nnn(opcode) {
-            console.log(numberToHexString(opcode), ' - 1nnn - JP addr');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 1${(opcode & 0x0FFF).toString(16).padStart(3, '0')} - JP addr`);
             PC = opcode & 0x0FFF;
         }
 
@@ -293,7 +305,7 @@
         // Call subroutine at nnn.
         // The interpreter increments the stack pointer, then puts the current PC on the top of the stack. The PC is then set to nnn.
         function OP_2nnn(opcode) {
-            console.log(numberToHexString(opcode), ' - 2nnn - CALL addr');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 2${(opcode & 0x0FFF).toString(16).padStart(3, '0')} - CALL addr`);
             SP++;
             stack[SP] = PC;
             PC = opcode & 0x0FFF;
@@ -303,7 +315,7 @@
         // Skip next instruction if Vx = kk.
         // The interpreter compares register Vx to kk, and if they are equal, increments the program counter by 2.
         function OP_3xkk(opcode) {
-            console.log(numberToHexString(opcode), ' - 3xkk - SE Vx, byte');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 3${((opcode & 0x0F00) >> 8).toString(16)}${(opcode & 0x00FF).toString(16).padStart(2, '0')} - SE Vx, byte`);
             if (V[(opcode & 0x0F00) >> 8] == opcode & 0x00FF)
                 PC += 2;
         }
@@ -312,7 +324,7 @@
         // Skip next instruction if Vx != kk.
         // The interpreter compares register Vx to kk, and if they are not equal, increments the program counter by 2.
         function OP_4xkk(opcode) {
-            console.log(numberToHexString(opcode), ' - 4xkk - SNE Vx, byte');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 4${((opcode & 0x0F00) >> 8).toString(16)}${(opcode & 0x00FF).toString(16).padStart(2, '0')} - SNE Vx, byte`);
             if (V[(opcode & 0x0F00) >> 8] != opcode & 0x00FF)
                 PC += 2;
         }
@@ -321,7 +333,7 @@
         // Skip next instruction if Vx = Vy.
         // The interpreter compares register Vx to register Vy, and if they are equal, increments the program counter by 2.
         function OP_5xy0(opcode) {
-            console.log(numberToHexString(opcode), ' - 5xy0 - SE Vx, Vy');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 5${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}0 - SE Vx, Vy`);
             if (V[(opcode & 0x0F00) >> 8] == V[(opcode & 0x00F0) >> 4])
                 PC += 2;
         }
@@ -330,7 +342,7 @@
         // Set Vx = kk.
         // The interpreter puts the value kk into register Vx.
         function OP_6xkk(opcode) {
-            console.log(numberToHexString(opcode), ' - 6xkk - LD Vx, byte');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 6${((opcode & 0x0F00) >> 8).toString(16)}${(opcode & 0x00FF).toString(16).padStart(2, '0')} - LD Vx, byte`);
             V[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
         }
 
@@ -338,7 +350,7 @@
         // Set Vx = Vx + kk.
         // Adds the value kk to the value of register Vx, then stores the result in Vx.
         function OP_7xkk(opcode) {
-            console.log(numberToHexString(opcode), ' - 7xkk - ADD Vx, byte');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 7${((opcode & 0x0F00) >> 8).toString(16)}${(opcode & 0x00FF).toString(16).padStart(2, '0')} - ADD Vx, byte`);
             V[(opcode & 0x0F00) >> 8] += opcode & 0x00FF;
         }
 
@@ -346,7 +358,7 @@
         // Set Vx = Vy.
         // Stores the value of register Vy in register Vx.
         function OP_8xy0(opcode) {
-            console.log(numberToHexString(opcode), ' - 8xy0 - LD Vx, Vy');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 8${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}0 - LD Vx, Vy`);
             V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4];
         }
 
@@ -354,7 +366,7 @@
         // Set Vx = Vx OR Vy.
         // Performs a bitwise OR on the values of Vx and Vy, then stores the result in Vx.
         function OP_8xy1(opcode) {
-            console.log(numberToHexString(opcode), ' - 8xy1 - OR Vx, Vy');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 8${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}1 - OR Vx, Vy`);
             V[(opcode & 0x0F00) >> 8] |= V[(opcode & 0x00F0) >> 4];
         }
 
@@ -362,7 +374,7 @@
         // Set Vx = Vx AND Vy.
         // Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx.
         function OP_8xy2(opcode) {
-            console.log(numberToHexString(opcode), ' - 8xy2 - AND Vx, Vy');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 8${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}2 - AND Vx, Vy`);
             V[(opcode & 0x0F00) >> 8] &= V[(opcode & 0x00F0) >> 4];
         }
 
@@ -370,7 +382,7 @@
         // Set Vx = Vx XOR Vy.
         // Performs a bitwise exclusive OR on the values of Vx and Vy, then stores the result in Vx.
         function OP_8xy3(opcode) {
-            console.log(numberToHexString(opcode), ' - 8xy3 - XOR Vx, Vy');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 8${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}3 - XOR Vx, Vy`);
             V[(opcode & 0x0F00) >> 8] ^= V[(opcode & 0x00F0) >> 4];
         }
 
@@ -378,7 +390,7 @@
         // Set Vx = Vx + Vy, set VF = carry.
         // The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255,) VF is set to 1, otherwise 0. Only the lowest 8 bits of the result are kept, and stored in Vx.
         function OP_8xy4(opcode) {
-            console.log(numberToHexString(opcode), ' - 8xy4 - ADD Vx, Vy');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 8${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}4 - ADD Vx, Vy`);
             V[0xF] = (V[(opcode & 0x0F00) >> 8] > 0xFF - V[(opcode & 0x00F0) >> 4]) ? 1 : 0;
             V[(opcode & 0x0F00) >> 8] += V[(opcode & 0x00F0) >> 4];
         }
@@ -387,7 +399,7 @@
         // Set Vx = Vx - Vy, set VF = NOT borrow.
         // If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, and the results stored in Vx.
         function OP_8xy5(opcode) {
-            console.log(numberToHexString(opcode), ' - 8xy5 - SUB Vx, Vy');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 8${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}5 - SUB Vx, Vy`);
             V[0xF] = (V[(opcode & 0x0F00) >> 8] > V[(opcode & 0x00F0) >> 4]) ? 1 : 0;
             V[(opcode & 0x0F00) >> 8] -= V[(opcode & 0x00F0) >> 4];
         }
@@ -396,7 +408,7 @@
         // Set Vx = Vx SHR 1.
         // If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2.
         function OP_8xy6(opcode) {
-            console.log(numberToHexString(opcode), ' - 8xy6 - SHR Vx {, Vy}');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 8${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}6 - SHR Vx {, Vy}`);
             V[0xF] = (V[(opcode & 0x0F00) >> 8] & 0x0001 == 0x1) ? 1 : 0;
             V[(opcode & 0x0F00) >> 8] >>= 1;
         }
@@ -405,7 +417,7 @@
         // Set Vx = Vy - Vx, set VF = NOT borrow.
         // If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
         function OP_8xy7(opcode) {
-            console.log(numberToHexString(opcode), ' - 8xy7 - SUBN Vx, Vy');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 8${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}7 - SUBN Vx, Vy`);
             V[0xF] = (V[(opcode & 0x00F0) >> 4] > V[(opcode & 0x0F00) >> 8]) ? 1 : 0;
             V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4] - V[(opcode & 0x0F00) >> 8];
         }
@@ -414,7 +426,7 @@
         // Set Vx = Vx SHL 1.
         // If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
         function OP_8xyE(opcode) {
-            console.log(numberToHexString(opcode), ' - 8xyE - SHL Vx {, Vy}');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 8${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}E - SHL Vx {, Vy}`);
             V[0xF] = (V[(opcode & 0x0F00) >> 8] >> 15 == 0x1) ? 1 : 0;
             V[(opcode & 0x0F00) >> 8] <<= 1;
         }
@@ -423,7 +435,7 @@
         // Skip next instruction if Vx != Vy.
         // The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2.
         function OP_9xy0(opcode) {
-            console.log(numberToHexString(opcode), ' - 9xy0 - SNE Vx, Vy');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - 9${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}0 - SNE Vx, Vy`);
             if (V[(opcode & 0x0F00) >> 8] != V[(opcode & 0x00F0) >> 4])
                 PC += 2;
         }
@@ -432,7 +444,7 @@
         // Set I = nnn.
         // The value of register I is set to nnn.
         function OP_Annn(opcode) {
-            console.log(numberToHexString(opcode), ' - Annn - LD I, addr');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - A${(opcode & 0x0FFF).toString(16).padStart(3, '0')} - LD I, addr`);
             I = opcode & 0x0FFF;
         }
 
@@ -440,7 +452,7 @@
         // Jump to location nnn + V0.
         // The program counter is set to nnn plus the value of V0.
         function OP_Bnnn(opcode) {
-            console.log(numberToHexString(opcode), ' - Bnnn - JP V0, addr');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - B${(opcode & 0x0FFF).toString(16).padStart(3, '0')} - JP V0, addr`);
             PC = (opcode & 0x0FFF) + V[0x0];
         }
 
@@ -448,7 +460,7 @@
         // Set Vx = random byte AND kk.
         // The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. The results are stored in Vx. See instruction 8xy2 for more information on AND.
         function OP_Cxkk(opcode) {
-            console.log(numberToHexString(opcode), ' - Cxkk - RND Vx, byte');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - C${((opcode & 0x0F00) >> 8).toString(16)}${(opcode & 0x00FF).toString(16).padStart(2, '0')} - RND Vx, byte`);
             V[(opcode & 0x0F00) >> 8] = getRandom() & (opcode & 0x00FF);
         }
 
@@ -456,7 +468,7 @@
         // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
         // The interpreter reads n bytes from memory, starting at the address stored in I. These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). Sprites are XORed onto the existing screen. If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen. See instruction 8xy3 for more information on XOR, and section 2.4, Display, for more information on the Chip-8 screen and sprites.
         function OP_Dxyn(opcode) {
-            console.log(numberToHexString(opcode), ' - Dxyn - DRW Vx, Vy, nibble');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - D${((opcode & 0x0F00) >> 8).toString(16)}${((opcode & 0x00F0) >> 4).toString(16)}${(opcode & 0x000F).toString(16)} - DRW Vx, Vy, nibble`);
             let x = V[(opcode & 0x0F00) >> 8];
             let y = V[(opcode & 0x00F0) >> 4];
             let n = (opcode & 0x000F);
@@ -483,7 +495,7 @@
         // Skip next instruction if key with the value of Vx is pressed.
         // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
         function OP_Ex9E(opcode) {
-            console.log(numberToHexString(opcode), ' - Ex9E - SKP Vx');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - E${((opcode & 0x0F00) >> 8).toString(16)}9E - SKP Vx`);
             if (keyboard[V[(opcode & 0x0F00) >> 8]] === 0x1)
                 PC += 2;
         }
@@ -492,7 +504,7 @@
         // Skip next instruction if key with the value of Vx is not pressed.
         // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
         function OP_ExA1(opcode) {
-            console.log(numberToHexString(opcode), ' - ExA1 - SKNP Vx');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - E${((opcode & 0x0F00) >> 8).toString(16)}A1 - SKNP Vx`);
             if (keyboard[V[(opcode & 0x0F00) >> 8]] !== 0x1)
                 PC += 2;
         }
@@ -501,7 +513,7 @@
         // Set Vx = delay timer value.
         // The value of DT is placed into Vx.
         function OP_Fx07(opcode) {
-            console.log(numberToHexString(opcode), ' - Fx07 - LD Vx, DT');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - F${((opcode & 0x0F00) >> 8).toString(16)}07 - LD Vx, DT`);
             V[(opcode & 0x0F00) >> 8] = DT;
         }
 
@@ -509,7 +521,7 @@
         // Wait for a key press, store the value of the key in Vx.
         // All execution stops until a key is pressed, then the value of that key is stored in Vx.
         function OP_Fx0A(opcode) {
-            console.log(numberToHexString(opcode), ' - Fx0A - LD Vx, K');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - F${((opcode & 0x0F00) >> 8).toString(16)}0A - LD Vx, K`);
             if (keyboard.every(key => key === 0x0))
                 PC -= 2;
             else
@@ -520,7 +532,7 @@
         // Set delay timer = Vx.
         // DT is set equal to the value of Vx.
         function OP_Fx15(opcode) {
-            console.log(numberToHexString(opcode), ' - Fx15 - LD DT, Vx');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - F${((opcode & 0x0F00) >> 8).toString(16)}15 - LD DT, Vx`);
             DT = V[(opcode & 0x0F00) >> 8];
         }
 
@@ -528,7 +540,7 @@
         // Set sound timer = Vx.
         // ST is set equal to the value of Vx.
         function OP_Fx18(opcode) {
-            console.log(numberToHexString(opcode), ' - Fx18 - LD ST, Vx');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - F${((opcode & 0x0F00) >> 8).toString(16)}18 - LD ST, Vx`);
             ST = V[(opcode & 0x0F00) >> 8];
         }
 
@@ -536,7 +548,7 @@
         // Set I = I + Vx.
         // The values of I and Vx are added, and the results are stored in I.
         function OP_Fx1E(opcode) {
-            console.log(numberToHexString(opcode), ' - Fx1E - ADD I, Vx');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - F${((opcode & 0x0F00) >> 8).toString(16)}1E - ADD I, Vx`);
             I &= V[(opcode & 0x0F00) >> 8];
         }
 
@@ -544,7 +556,7 @@
         // Set I = location of sprite for digit Vx.
         // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx.
         function OP_Fx29(opcode) {
-            console.log(numberToHexString(opcode), ' - Fx29 - LD F, Vx');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - F${((opcode & 0x0F00) >> 8).toString(16)}29 - LD F, Vx`);
             
         }
 
@@ -552,7 +564,7 @@
         // Store BCD representation of Vx in memory locations I, I+1, and I+2.
         // The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
         function OP_Fx33(opcode) {
-            console.log(numberToHexString(opcode), ' - Fx33 - LD B, Vx');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - F${((opcode & 0x0F00) >> 8).toString(16)}33 - LD B, Vx`);
             memory[I] = Math.floor(V[(opcode & 0x0F00) >> 8] / 100);
             memory[I + 1] = Math.floor((V[(opcode & 0x0F00) >> 8] % 100) / 10);
             memory[I + 2] = Math.floor((V[(opcode & 0x0F00) >> 8] % 100) % 10);
@@ -562,7 +574,7 @@
         // Store registers V0 through Vx in memory starting at location I.
         // The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
         function OP_Fx55(opcode) {
-            console.log(numberToHexString(opcode), ' - Fx55 - LD [I], Vx');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - F${((opcode & 0x0F00) >> 8).toString(16)}55 - LD [I], Vx`);
             let x = V[(opcode & 0x0F00) >> 8];
             for (let i = 0; i <= x; i++)
                 memory[I + 0] = V[i];
@@ -572,7 +584,7 @@
         // Read registers V0 through Vx from memory starting at location I.
         // The interpreter reads values from memory starting at location I into registers V0 through Vx.
         function OP_Fx65(opcode) {
-            console.log(numberToHexString(opcode), ' - Fx65 - LD Vx, [I]');
+            console.log((PC).toString(16).padStart(3,'0') + ' - ', numberToHexString(opcode), ` - F${((opcode & 0x0F00) >> 8).toString(16)}65 - LD Vx, [I]`);
             let x = V[(opcode & 0x0F00) >> 8];
             for (let i = 0; i <= x; i++)
                 V[i] = memory[I + 0];
