@@ -40,7 +40,7 @@
         // other variables
         var needDrawing; // set to true if the draw function is called, indicating that the screen need to be drawn
         var pauseGame = false;
-        var frameTime = 1000 / 60;
+        var frameTime = 1000 / 120;
         var startTime;
 
 
@@ -68,6 +68,7 @@
         });
 
         document.addEventListener('keydown', function (event) {
+            console.log(event.code);
             switch (event.code) {
                 case 'Digit1': // 1
                     keyboard[0x1] = 0x1;
@@ -546,9 +547,10 @@
         // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
         function OP_Ex9E(opcode) {
             console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - SKP Vx`);
-            if (keyboard[V[(opcode & 0x0F00) >> 8]] === 0x1)
+            if (keyboard[V[(opcode & 0x0F00) >> 8]] === 0x1) {
                 PC += 2;
-            keyboard.fill(0);
+                keyboard.fill(0);
+            }
         }
 
         // SKNP Vx
@@ -556,9 +558,11 @@
         // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
         function OP_ExA1(opcode) {
             console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - SKNP Vx`);
-            if (keyboard[V[(opcode & 0x0F00) >> 8]] !== 0x1)
+            if (keyboard[V[(opcode & 0x0F00) >> 8]] !== 0x1) {
                 PC += 2;
-            keyboard.fill(0);
+            } else {
+                keyboard.fill(0);
+            }
         }
 
         // LD Vx, DT
@@ -576,9 +580,10 @@
             console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - LD Vx, K`);
             if (keyboard.every(key => key === 0x0))
                 PC -= 2;
-            else
+            else {
                 V[(opcode & 0x0F00) >> 8] = keyboard.findIndex(item => item === 0x1);
-            keyboard.fill(0);
+                keyboard.fill(0);
+            }
         }
 
         // LD DT, Vx
