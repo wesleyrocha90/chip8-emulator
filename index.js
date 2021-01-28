@@ -157,7 +157,9 @@ function drawCanvas() {
 function gameLoop() {
     if ((Date.now() - startTime) > frameTime) {
         if (!pauseGame) {
-            emulateCycle();
+            for (let i = 0; i < 10; i++) {
+                emulateCycle();
+            }
             
             if (needDrawing)
                 drawCanvas();
