@@ -47,7 +47,7 @@ pauseButton.addEventListener('click', function () {
 });
 
 document.addEventListener('keydown', function (event) {
-    console.log(event.code);
+    // console.log(event.code);
     switch (event.code) {
         case 'Digit1': // 1
             keyboard[0x1] = 0x1;
