@@ -1,26 +1,100 @@
 <html>
-
 <head>
     <title>Chip 8 Emulator</title>
     <meta charset="utf-8">  
 </head>
 
 <body>
-    <div style="width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <h1>Chip 8 Emulator</h1>
-    
-        <canvas id="canvas" width="64" height="32" style="border: 1px solid lightgrey; width: 600px; height: 300px; image-rendering: pixelated; image-rendering: crisp-edges;"></canvas>
+    <div style="display: flex; flex-direction: row;">
+        <div style="width: 25%;">
+
+        </div>
+
+        <div style="width: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <h1>Chip 8 Emulator</h1>
         
-        <br />
-        <label for="file">Choose a game file:</label>
-        <br />
-        <input id="file" name="file" type="file">
-        <br />
-        <button id="pause">Pause</button>
+            <canvas id="canvas" width="64" height="32" style="border: 1px solid lightgrey; width: 600px; height: 300px; image-rendering: pixelated; image-rendering: crisp-edges;"></canvas>
+            
+            <br />
+            <label for="file">Choose a game file:</label>
+            <br />
+            <input id="file" name="file" type="file">
+            <br />
+            <button id="pause">Pause</button>
+        </div>
+
+        <div style="width: 25%;">
+            <div>
+                <span>V[0]</span>
+                <span id="V0"></span>
+            </div>
+            <div>
+                <span>V[1]</span>
+                <span id="V1"></span>
+            </div>
+            <div>
+                <span>V[2]</span>
+                <span id="V2"></span>
+            </div>
+            <div>
+                <span>V[3]</span>
+                <span id="V3"></span>
+            </div>
+            <div>
+                <span>V[4]</span>
+                <span id="V4"></span>
+            </div>
+            <div>
+                <span>V[5]</span>
+                <span id="V5"></span>
+            </div>
+            <div>
+                <span>V[6]</span>
+                <span id="V6"></span>
+            </div>
+            <div>
+                <span>V[7]</span>
+                <span id="V7"></span>
+            </div>
+            <div>
+                <span>V[8]</span>
+                <span id="V8"></span>
+            </div>
+            <div>
+                <span>V[9]</span>
+                <span id="V9"></span>
+            </div>
+            <div>
+                <span>V[A]</span>
+                <span id="VA"></span>
+            </div>
+            <div>
+                <span>V[B]</span>
+                <span id="VB"></span>
+            </div>
+            <div>
+                <span>V[C]</span>
+                <span id="VC"></span>
+            </div>
+            <div>
+                <span>V[D]</span>
+                <span id="VD"></span>
+            </div>
+            <div>
+                <span>V[E]</span>
+                <span id="VE"></span>
+            </div>
+            <div>
+                <span>V[F]</span>
+                <span id="VF"></span>
+            </div>
+        </div>
+        
     </div>
     
+    <script src="./utils.js"></script>
+    <script src="./events.js"></script>
     <script src="./index.js"></script>
     <script src="./opcodes.js"></script>
 </body>
-
 </html>

@@ -91,6 +91,7 @@ function OP_7xkk(opcode) {
 function OP_8xy0(opcode) {
     if (debug) console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - LD Vx, Vy`);
     V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4];
+    emitChange()
 }
 
 // OR Vx, Vy
@@ -99,6 +100,7 @@ function OP_8xy0(opcode) {
 function OP_8xy1(opcode) {
     if (debug) console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - OR Vx, Vy`);
     V[(opcode & 0x0F00) >> 8] |= V[(opcode & 0x00F0) >> 4];
+    emitChange()
 }
 
 // AND Vx, Vy
@@ -107,6 +109,7 @@ function OP_8xy1(opcode) {
 function OP_8xy2(opcode) {
     if (debug) console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - AND Vx, Vy`);
     V[(opcode & 0x0F00) >> 8] &= V[(opcode & 0x00F0) >> 4];
+    emitChange()
 }
 
 // XOR Vx, Vy
@@ -115,6 +118,7 @@ function OP_8xy2(opcode) {
 function OP_8xy3(opcode) {
     if (debug) console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - XOR Vx, Vy`);
     V[(opcode & 0x0F00) >> 8] ^= V[(opcode & 0x00F0) >> 4];
+    emitChange()
 }
 
 // ADD Vx, Vy
@@ -124,6 +128,7 @@ function OP_8xy4(opcode) {
     if (debug) console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - ADD Vx, Vy`);
     V[0xF] = (V[(opcode & 0x0F00) >> 8] > 0xFF - V[(opcode & 0x00F0) >> 4]) ? 1 : 0;
     V[(opcode & 0x0F00) >> 8] += V[(opcode & 0x00F0) >> 4];
+    emitChange()
 }
 
 // SUB Vx, Vy
@@ -133,6 +138,7 @@ function OP_8xy5(opcode) {
     if (debug) console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - SUB Vx, Vy`);
     V[0xF] = (V[(opcode & 0x0F00) >> 8] > V[(opcode & 0x00F0) >> 4]) ? 1 : 0;
     V[(opcode & 0x0F00) >> 8] -= V[(opcode & 0x00F0) >> 4];
+    emitChange()
 }
 
 // SHR Vx {, Vy}
@@ -142,6 +148,7 @@ function OP_8xy6(opcode) {
     if (debug) console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - SHR Vx {, Vy}`);
     V[0xF] = (V[(opcode & 0x0F00) >> 8] & 0x0001 == 0x1) ? 1 : 0;
     V[(opcode & 0x0F00) >> 8] >>= 1;
+    emitChange()
 }
 
 // SUBN Vx, Vy
@@ -151,6 +158,7 @@ function OP_8xy7(opcode) {
     if (debug) console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - SUBN Vx, Vy`);
     V[0xF] = (V[(opcode & 0x00F0) >> 4] > V[(opcode & 0x0F00) >> 8]) ? 1 : 0;
     V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4] - V[(opcode & 0x0F00) >> 8];
+    emitChange()
 }
 
 // SHL Vx {, Vy}
@@ -160,6 +168,7 @@ function OP_8xyE(opcode) {
     if (debug) console.log((PC-2).toString(16).padStart(3,'0').toUpperCase() + ' - ', numberToHexString(opcode), ` - SHL Vx {, Vy}`);
     V[0xF] = (V[(opcode & 0x0F00) >> 8] >> 7 == 0x1) ? 1 : 0;
     V[(opcode & 0x0F00) >> 8] <<= 1;
+    emitChange()
 }
 
 // SNE Vx, Vy
@@ -327,12 +336,4 @@ function OP_Fx65(opcode) {
 
 function getRandom() {
     return Math.floor(Math.random() * 0xFF);
-}
-
-function numberToHexString(number) {
-    return '0x' + number.toString(16).toUpperCase().padStart(4, '0');
-}
-
-function numberToBinString(number) {
-    return '0b' + number.toString(2).padStart(8, '0');
 }
